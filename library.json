@@ -1,7 +1,7 @@
 {
   "name": "arduino_core",
   "version": "1.0.0",
-  "description": "A header-only library that includes arduinolib4 from GitHub",
+  "description": "A header-only library that includes springbootplusplus from GitHub",
   "keywords": "arduino, utility",
   "authors": [
     {
@@ -13,7 +13,7 @@
     "url": "https://github.com/compilerNayan/arduino_core.git"
   },
   "dependencies": {
-    "springbootplusplus": "https://github.com/compilerNayan/arduinolib4.git"
+    "springbootplusplus": "https://github.com/compilerNayan/springbootplusplus.git"
   },
   "license": "MIT",
   "homepage": "",

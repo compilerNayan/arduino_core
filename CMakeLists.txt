@@ -8,14 +8,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Fetch dependencies
 include(FetchContent)
 
-# Fetch arduinolib4
+# Fetch springbootplusplus
 FetchContent_Declare(
-    arduinolib4
-    GIT_REPOSITORY https://github.com/compilerNayan/arduinolib4.git
+    springbootplusplus
+    GIT_REPOSITORY https://github.com/compilerNayan/springbootplusplus.git
     GIT_TAG        main
 )
 
-FetchContent_MakeAvailable(arduinolib4)
+FetchContent_MakeAvailable(springbootplusplus)
 
 # Create header-only library (INTERFACE library)
 add_library(arduino_core INTERFACE)
@@ -31,18 +31,18 @@ target_include_directories(arduino_core INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 
-# Link to arduinolib4
+# Link to springbootplusplus
 # Try the namespaced target first, fallback to non-namespaced
-if(TARGET arduinolib4::arduinolib4)
-    target_link_libraries(arduino_core INTERFACE arduinolib4::arduinolib4)
-elseif(TARGET arduinolib4)
-    target_link_libraries(arduino_core INTERFACE arduinolib4)
+if(TARGET springbootplusplus::springbootplusplus)
+    target_link_libraries(arduino_core INTERFACE springbootplusplus::springbootplusplus)
+elseif(TARGET springbootplusplus)
+    target_link_libraries(arduino_core INTERFACE springbootplusplus)
 else()
     # Fallback: manually add include directory if target doesn't exist
-    FetchContent_GetProperties(arduinolib4)
-    if(arduinolib4_SOURCE_DIR)
+    FetchContent_GetProperties(springbootplusplus)
+    if(springbootplusplus_SOURCE_DIR)
         target_include_directories(arduino_core INTERFACE
-            $<BUILD_INTERFACE:${arduinolib4_SOURCE_DIR}/src>
+            $<BUILD_INTERFACE:${springbootplusplus_SOURCE_DIR}/src>
         )
     endif()
 endif()
