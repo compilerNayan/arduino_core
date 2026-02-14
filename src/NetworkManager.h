@@ -100,7 +100,7 @@ class NetworkManager : public INetworkManager {
         
         // Step 2: If last WiFi not present or connection failed, try all WiFi credentials
         std_println("[NetworkManager] Step 2: Getting all WiFi credentials from database...");
-        Vector<WifiCredentials> allCredentials = wifiService->GetAllWifiCredentials();
+        StdVector<WifiCredentials> allCredentials = wifiService->GetAllWifiCredentials();
         
         if (!allCredentials.empty()) {
             std_print("[NetworkManager] Found ");

@@ -21,7 +21,7 @@ class IWifiService {
     Public Virtual WifiCredentials GetWifiCredentials(const StdString& ssid) = 0;
 
     // Get all WiFi credentials
-    Public Virtual Vector<WifiCredentials> GetAllWifiCredentials() = 0;
+    Public Virtual StdVector<WifiCredentials> GetAllWifiCredentials() = 0;
 
     // Get last connected WiFi details
     Public Virtual optional<WifiCredentials> GetLastConnectedWifi() = 0;
