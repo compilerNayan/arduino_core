@@ -34,7 +34,7 @@ class NetworkManager : public INetworkManager {
     Private Bool hotspotActive_ = false;
     // Throttle internet check to every 5 seconds when WiFi connected
     Private ULong lastInternetCheckMillis_ = 0;
-    Static Const ULong kInternetCheckIntervalMs = 5000;
+    static const ULong kInternetCheckIntervalMs = 5000;
 
     Private Bool HasInternet() {
         WiFiClient client;
