@@ -28,6 +28,10 @@ class NetworkManager : public INetworkManager {
     Private StdString currentMode;
     // WiFi connection id (random when connecting to WiFi; 0 when not on WiFi)
     Private Int wifiConnectionId_ = 0;
+    // Cached state for change detection (log only when state changes)
+    Private Bool wifiConnected_ = false;
+    Private Bool internetConnected_ = false;
+    Private Bool hotspotActive_ = false;
 
     Private Bool HasInternet() {
         WiFiClient client;
@@ -251,17 +255,36 @@ class NetworkManager : public INetworkManager {
             ConnectNetwork();
         }
 
-        if (WiFi.status() == WL_CONNECTED) {
-            networkStatusProvider_->SetWiFiConnected(true);
-            networkStatusProvider_->SetWifiConnectionId(wifiConnectionId_);
-            networkStatusProvider_->SetInternetConnected(HasInternet());
-        } else if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
-            networkStatusProvider_->SetWiFiConnected(false);
-            networkStatusProvider_->SetInternetConnected(false);
-            networkStatusProvider_->SetWifiConnectionId(0);
-        } else {
-            networkStatusProvider_->SetWiFiConnected(false);
-            networkStatusProvider_->SetInternetConnected(false);
+        Bool w = (WiFi.status() == WL_CONNECTED);
+        Bool inet = w && HasInternet();
+        Bool hot = (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA);
+
+        if (w != wifiConnected_) {
+            wifiConnected_ = w;
+            std_println(w ? "[NetworkManager] State: WiFi connected" : "[NetworkManager] State: WiFi disconnected");
+        }
+        if (inet != internetConnected_) {
+            internetConnected_ = inet;
+            std_println(inet ? "[NetworkManager] State: Internet connected" : "[NetworkManager] State: Internet disconnected");
+        }
+        if (hot != hotspotActive_) {
+            hotspotActive_ = hot;
+            std_println(hot ? "[NetworkManager] State: Hotspot active" : "[NetworkManager] State: Hotspot inactive");
+        }
+
+        if (networkStatusProvider_) {
+            if (w) {
+                networkStatusProvider_->SetWiFiConnected(true);
+                networkStatusProvider_->SetWifiConnectionId(wifiConnectionId_);
+                networkStatusProvider_->SetInternetConnected(inet);
+            } else if (hot) {
+                networkStatusProvider_->SetWiFiConnected(false);
+                networkStatusProvider_->SetInternetConnected(false);
+                networkStatusProvider_->SetWifiConnectionId(0);
+            } else {
+                networkStatusProvider_->SetWiFiConnected(false);
+                networkStatusProvider_->SetInternetConnected(false);
+            }
         }
 
         return IsNetworkConnected();
