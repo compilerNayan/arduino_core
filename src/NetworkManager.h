@@ -32,6 +32,9 @@ class NetworkManager : public INetworkManager {
     Private Bool wifiConnected_ = false;
     Private Bool internetConnected_ = false;
     Private Bool hotspotActive_ = false;
+    // Throttle internet check to every 5 seconds when WiFi connected
+    Private ULong lastInternetCheckMillis_ = 0;
+    Static Const ULong kInternetCheckIntervalMs = 5000;
 
     Private Bool HasInternet() {
         WiFiClient client;
@@ -256,7 +259,21 @@ class NetworkManager : public INetworkManager {
         }
 
         Bool w = (WiFi.status() == WL_CONNECTED);
-        Bool inet = w && HasInternet();
+        Bool inet = false;
+        if (w) {
+            ULong now = (ULong)millis();
+            Bool wasConnected = internetConnected_;
+            Bool throttle = wasConnected && (lastInternetCheckMillis_ != 0) && (now - lastInternetCheckMillis_ < kInternetCheckIntervalMs);
+            Bool shouldCheck = !throttle;
+            if (shouldCheck) {
+                inet = HasInternet();
+                lastInternetCheckMillis_ = now;
+            } else {
+                inet = internetConnected_;
+            }
+        } else {
+            lastInternetCheckMillis_ = 0;
+        }
         Bool hot = (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA);
 
         if (w != wifiConnected_) {
