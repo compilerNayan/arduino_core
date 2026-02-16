@@ -6,7 +6,9 @@
 #include "INetworkManager.h"
 #include "service/IWifiService.h"
 #include "entity/WifiCredentials.h"
+#include "INetworkStatusProvider.h"
 #include <WiFi.h>
+#include <WiFiClient.h>
 #include <Arduino.h>
 
 // Define print macros for Arduino
@@ -19,9 +21,22 @@ class NetworkManager : public INetworkManager {
 
     /* @Autowired */
     IWifiServicePtr wifiService;
+    /* @Autowired */
+    INetworkStatusProviderPtr networkStatusProvider_;
 
     // Track current mode: "wifi" or "hotspot"
     Private StdString currentMode;
+    // WiFi connection id (random when connecting to WiFi; 0 when not on WiFi)
+    Private Int wifiConnectionId_ = 0;
+
+    Private Bool HasInternet() {
+        WiFiClient client;
+        if (!client.connect("8.8.8.8", 53, 2000)) {
+            return false;
+        }
+        client.stop();
+        return true;
+    }
 
     // Helper method to attempt WiFi connection
     Private Bool TryConnectToWifi(const StdString& ssid, const StdString& password) {
@@ -50,6 +65,7 @@ class NetworkManager : public INetworkManager {
         }
         
         if (WiFi.status() == WL_CONNECTED) {
+            wifiConnectionId_ = random(1, 2147483647);
             std_print("[NetworkManager] WiFi connected successfully! IP Address: ");
             std_println(WiFi.localIP().toString().c_str());
             return true;
@@ -89,6 +105,8 @@ class NetworkManager : public INetworkManager {
             if (connected) {
                 // Update last connected SSID (in case it changed)
                 wifiService->UpdateLastConnectedSsid(ssid);
+                networkStatusProvider_->SetWifiConnectionId(wifiConnectionId_);
+                networkStatusProvider_->SetWiFiConnected(true);
                 std_println("[NetworkManager] Successfully connected to last connected WiFi");
                 return;
             } else {
@@ -135,6 +153,8 @@ class NetworkManager : public INetworkManager {
                 if (connected) {
                     // Update last connected SSID with the successful one
                     wifiService->UpdateLastConnectedSsid(ssid);
+                    networkStatusProvider_->SetWifiConnectionId(wifiConnectionId_);
+                    networkStatusProvider_->SetWiFiConnected(true);
                     std_print("[NetworkManager] Successfully connected to WiFi: ");
                     std_println(ssid.c_str());
                     std_println("[NetworkManager] Updated last connected WiFi");
@@ -155,10 +175,13 @@ class NetworkManager : public INetworkManager {
         delay(100);
         WiFi.mode(WIFI_AP);
         
-        // Start hotspot with SSID "Mishulika" and no password (open)
-        Bool apStarted = WiFi.softAP("Mishulika", nullptr);
+        // Start hotspot with SSID "SmartBoard" and no password (open)
+        Bool apStarted = WiFi.softAP("SmartBoard", nullptr);
         if (apStarted) {
             currentMode = "hotspot";
+            networkStatusProvider_->SetWiFiConnected(false);
+            networkStatusProvider_->SetInternetConnected(false);
+            networkStatusProvider_->SetWifiConnectionId(0);
             std_print("[NetworkManager] Hotspot started successfully! AP IP Address: ");
             std_println(WiFi.softAPIP().toString().c_str());
         } else {
@@ -187,6 +210,10 @@ class NetworkManager : public INetworkManager {
             }
             WiFi.disconnect();
         }
+
+        networkStatusProvider_->SetWiFiConnected(false);
+        networkStatusProvider_->SetInternetConnected(false);
+        networkStatusProvider_->SetWifiConnectionId(0);        
         
         currentMode = "";
         std_println("[NetworkManager] Network disconnected");
@@ -205,6 +232,39 @@ class NetworkManager : public INetworkManager {
         }
         
         return false;
+    }
+
+    Public Virtual Bool IsInternetConnected() override {
+        if (WiFi.status() != WL_CONNECTED) {
+            return false;
+        }
+        return HasInternet();
+    }
+
+    Public Virtual Int GetWifiConnectionId() override {
+        return wifiConnectionId_;
+    }
+
+    Public Virtual Bool EnsureNetworkConnectivity() override {
+        if (WiFi.status() != WL_CONNECTED) {
+            DisconnectNetwork();
+            ConnectNetwork();
+        }
+
+        if (WiFi.status() == WL_CONNECTED) {
+            networkStatusProvider_->SetWiFiConnected(true);
+            networkStatusProvider_->SetWifiConnectionId(wifiConnectionId_);
+            networkStatusProvider_->SetInternetConnected(HasInternet());
+        } else if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
+            networkStatusProvider_->SetWiFiConnected(false);
+            networkStatusProvider_->SetInternetConnected(false);
+            networkStatusProvider_->SetWifiConnectionId(0);
+        } else {
+            networkStatusProvider_->SetWiFiConnected(false);
+            networkStatusProvider_->SetInternetConnected(false);
+        }
+
+        return IsNetworkConnected();
     }
 
     // Restart network (disconnect and reconnect)
