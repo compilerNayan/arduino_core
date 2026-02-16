@@ -7,8 +7,12 @@
 #include "service/IWifiService.h"
 #include "entity/WifiCredentials.h"
 #include "INetworkStatusProvider.h"
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
 #include <WiFi.h>
 #include <WiFiClient.h>
+#endif
 #include <Arduino.h>
 
 // Define print macros for Arduino
