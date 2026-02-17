@@ -8,6 +8,7 @@
 #include <IArduinoRemoteStorage.h>
 #include <IThreadPool.h>
 #include <IDeviceTimeSync.h>
+#include <ILogger.h>
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -36,6 +37,9 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     /* @Autowired */
     Private IDeviceTimeSyncPtr deviceTimeSync;
 
+    /* @Autowired */
+    Private ILoggerPtr logger;
+
     Private Static const ULong kPublishLogsIntervalMs = 120000;  // 2 minutes
     Private std::atomic<ULong> lastPublishLogsMillis_{0};
     /** True while a PublishLogs() call is in flight; prevents starting another until we get a result. */
@@ -60,6 +64,7 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     }
 
     Public Virtual Bool StartApp() override {
+        logger->Info(Tag::Untagged, StdString("[ArduinoSpringBootApp] Starting app..."));
         // First connect to network
         networkManager->EnsureNetworkConnectivity();
 
@@ -74,6 +79,7 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     }
 
     Public Virtual Void StopApp() override {
+        logger->Info(Tag::Untagged, StdString("[ArduinoSpringBootApp] Stopping app..."));
         // First disconnect from network
         networkManager->DisconnectNetwork();
         
@@ -82,6 +88,7 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     }
 
     Public Virtual Bool RestartApp() override {
+        logger->Info(Tag::Untagged, StdString("[ArduinoSpringBootApp] Restarting app..."));
         // Stop the application (calls StopApp of this class)
         StopApp();
         
