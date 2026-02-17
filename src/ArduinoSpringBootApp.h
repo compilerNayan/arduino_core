@@ -6,9 +6,11 @@
 #include "INetworkManager.h"
 #include "ISpringBootCppApp.h"
 #include <IArduinoRemoteStorage.h>
+#include <IThreadPool.h>
 
 #ifdef ARDUINO
 #include <Arduino.h>
+#include <atomic>
 // Define print macros for Arduino
 #define std_print(x) Serial.print(x)
 #define std_println(x) Serial.println(x)
@@ -27,8 +29,31 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     /* @Autowired */
     Private IArduinoRemoteStoragePtr remoteStorage;
 
+    /* @Autowired */
+    Private IThreadPoolPtr threadPool;
+
     Private Static const ULong kPublishLogsIntervalMs = 120000;  // 2 minutes
-    Private ULong lastPublishLogsMillis_{0};
+    Private std::atomic<ULong> lastPublishLogsMillis_{0};
+    /** True while a PublishLogs() call is in flight; prevents starting another until we get a result. */
+    Private std::atomic<bool> publishInProgress_{false};
+
+    Private Void TryPublishLogs() {
+        if (millis() - lastPublishLogsMillis_.load(std::memory_order_relaxed) < kPublishLogsIntervalMs) return;
+        if (publishInProgress_.exchange(true)) return;  // another publish already in flight; wait for next call
+
+        Bool submitted = threadPool->Submit([this]() {
+            FirebaseOperationResult res = remoteStorage->PublishLogs();
+            publishInProgress_.store(false);
+            if (res == FirebaseOperationResult::OperationSucceeded) {
+                lastPublishLogsMillis_.store((ULong)millis(), std::memory_order_release);
+            }
+        });
+        if (!submitted) {
+            publishInProgress_.store(false);
+        } else {
+            publishInProgress_.store(true);  // task in flight; cleared when task completes
+        }
+    }
 
     Public Virtual Bool StartApp() override {
         // First connect to network
@@ -61,10 +86,7 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     Public Virtual Void ListenToRequest() override {
         networkManager->EnsureNetworkConnectivity();
         springBootCppApp->ListenToRequest();
-        if (remoteStorage && (millis() - lastPublishLogsMillis_ >= kPublishLogsIntervalMs)) {
-            remoteStorage->PublishLogs();
-            lastPublishLogsMillis_ = millis();
-        }
+        TryPublishLogs();
     }
 };
 
