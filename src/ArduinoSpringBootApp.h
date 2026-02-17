@@ -5,6 +5,7 @@
 #include "IArduinoSpringBootApp.h"
 #include "INetworkManager.h"
 #include "ISpringBootCppApp.h"
+#include <IArduinoRemoteStorage.h>
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -22,6 +23,12 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
 
     /* @Autowired */
     Private ISpringBootCppAppPtr springBootCppApp;
+
+    /* @Autowired */
+    Private IArduinoRemoteStoragePtr remoteStorage;
+
+    Private Static const ULong kPublishLogsIntervalMs = 120000;  // 2 minutes
+    Private ULong lastPublishLogsMillis_{0};
 
     Public Virtual Bool StartApp() override {
         // First connect to network
@@ -52,9 +59,12 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     }
 
     Public Virtual Void ListenToRequest() override {
-        // Delegate to Spring Boot application's ListenToRequest
         networkManager->EnsureNetworkConnectivity();
         springBootCppApp->ListenToRequest();
+        if (remoteStorage && (millis() - lastPublishLogsMillis_ >= kPublishLogsIntervalMs)) {
+            remoteStorage->PublishLogs();
+            lastPublishLogsMillis_ = millis();
+        }
     }
 };
 
