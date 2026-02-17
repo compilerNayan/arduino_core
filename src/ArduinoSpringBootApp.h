@@ -63,6 +63,9 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
         // First connect to network
         networkManager->EnsureNetworkConnectivity();
 
+        // Let WiFi and DNS stabilize before NTP (avoids 1970 when sync runs too early)
+        delay(2000);
+
         // Set device time from NTP while network is up
         deviceTimeSync->SyncTimeFromNetwork();
 
