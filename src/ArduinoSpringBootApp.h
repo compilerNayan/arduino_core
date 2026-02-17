@@ -7,6 +7,7 @@
 #include "ISpringBootCppApp.h"
 #include <IArduinoRemoteStorage.h>
 #include <IThreadPool.h>
+#include <IDeviceTimeSync.h>
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -31,6 +32,9 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
 
     /* @Autowired */
     Private IThreadPoolPtr threadPool;
+
+    /* @Autowired */
+    Private IDeviceTimeSyncPtr deviceTimeSync;
 
     Private Static const ULong kPublishLogsIntervalMs = 120000;  // 2 minutes
     Private std::atomic<ULong> lastPublishLogsMillis_{0};
@@ -59,10 +63,11 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
         // First connect to network
         networkManager->EnsureNetworkConnectivity();
 
+        // Set device time from NTP while network is up
+        deviceTimeSync->SyncTimeFromNetwork();
+
         // Then start the Spring Boot application
         return springBootCppApp->StartApp();
-        
-        return false;
     }
 
     Public Virtual Void StopApp() override {
