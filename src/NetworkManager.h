@@ -6,7 +6,7 @@
 #include "INetworkManager.h"
 #include "service/IWifiService.h"
 #include "entity/WifiCredentials.h"
-#include "INetworkStatusProvider.h"
+#include <INetworkStatusProvider.h>
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #else
