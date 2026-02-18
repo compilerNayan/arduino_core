@@ -42,6 +42,27 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
 
     Private Static const ULong kPublishLogsIntervalMs = 120000;  // 2 minutes
     Private std::atomic<ULong> lastPublishLogsMillis_{0};
+    Private Static const ULong kHeartbeatLogIntervalMs = 30 * 60 * 1000;  // 30 minutes
+    Private ULong lastHeartbeatLogMillis_{0};
+
+    Private Void SendHeartbeat() {
+        ULong now = (ULong)millis();
+        if (now - lastHeartbeatLogMillis_ < kHeartbeatLogIntervalMs) return;
+        lastHeartbeatLogMillis_ = now;
+
+        ULong uptimeMs = now;
+        ULong uptimeMin = uptimeMs / 60000;
+        ULong hours = uptimeMin / 60;
+        ULong minutes = uptimeMin % 60;
+        StdString message;
+        if (hours > 0) {
+            message = "[Heartbeat] Device uptime: " + std::to_string(hours) + "h " + std::to_string(minutes) + "m";
+        } else {
+            message = "[Heartbeat] Device uptime: " + std::to_string(minutes) + " min";
+        }
+        logger->Info(Tag::Untagged, message);
+    }
+
     /** True while a PublishLogs() call is in flight; prevents starting another until we get a result. */
     Private std::atomic<bool> publishInProgress_{false};
 
@@ -101,6 +122,7 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     Public Virtual Void ListenToRequest() override {
         networkManager->EnsureNetworkConnectivity();
         springBootCppApp->ListenToRequest();
+        SendHeartbeat();
         TryPublishLogs();
     }
 };
