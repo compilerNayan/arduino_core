@@ -16,6 +16,26 @@
 #endif
 #include <Arduino.h>
 
+namespace {
+struct InternetCheckPair {
+    const char* ip1;
+    const char* ip2;
+};
+const InternetCheckPair kInternetCheckPairs[] = {
+    { "208.67.222.123", "1.0.0.1" },       // 1: FamilyShield, Cloudflare
+    { "8.8.4.4", "208.67.220.220" },       // 2: Google, OpenDNS
+    { "156.154.70.1", "64.6.64.6" },       // 3: Neustar, Verisign
+    { "195.46.39.39", "199.85.127.10" },   // 4: SafeDNS, Norton
+    { "76.76.2.0", "94.140.15.15" },       // 5: Control D, AdGuard
+    { "208.67.220.123", "156.154.71.1" },  // 6: FamilyShield, Neustar
+    { "1.1.1.1", "208.67.222.222" },      // 7: Cloudflare, OpenDNS
+    { "8.8.8.8", "64.6.65.6" },            // 8: Google, Verisign
+    { "195.46.39.40", "76.76.10.0" },      // 9: SafeDNS, Control D
+    { "199.85.126.10", "76.76.19.19" },    // 10: Norton, Alternate
+};
+const size_t kNumInternetCheckPairs = sizeof(kInternetCheckPairs) / sizeof(kInternetCheckPairs[0]);
+}
+
 /* @Component */
 class NetworkManager : public INetworkManager {
     Public Virtual ~NetworkManager() = default;
@@ -39,13 +59,23 @@ class NetworkManager : public INetworkManager {
     Private ULong lastInternetCheckMillis_ = 0;
     static const ULong kInternetCheckIntervalMs = 5000;
 
+    // Round-robin index for internet check pairs (no same provider in consecutive pairs)
+    Private size_t nextInternetCheckPairIndex_ = 0;
+
     Private Bool HasInternet() {
+        const InternetCheckPair& pair = kInternetCheckPairs[nextInternetCheckPairIndex_];
+        nextInternetCheckPairIndex_ = (nextInternetCheckPairIndex_ + 1) % kNumInternetCheckPairs;
+
         WiFiClient client;
-        if (!client.connect("8.8.8.8", 53, 2000)) {
-            return false;
+        if (client.connect(pair.ip1, 53, 2000)) {
+            client.stop();
+            return true;
         }
-        client.stop();
-        return true;
+        if (client.connect(pair.ip2, 53, 2000)) {
+            client.stop();
+            return true;
+        }
+        return false;
     }
 
     // Helper method to attempt WiFi connection
