@@ -71,10 +71,12 @@ class NetworkManager : public INetworkManager {
             client.stop();
             return true;
         }
+        logger->Warning(Tag::Untagged, StdString("[NetworkManager] Internet check failed for " + StdString(pair.ip1)));
         if (client.connect(pair.ip2, 53, 2000)) {
             client.stop();
             return true;
         }
+        logger->Warning(Tag::Untagged, StdString("[NetworkManager] Internet check failed for " + StdString(pair.ip2)));
         return false;
     }
 
