@@ -8,6 +8,7 @@
 #include <IArduinoRemoteStorage.h>
 #include <IThreadPool.h>
 #include <IDeviceTime.h>
+#include <IDeviceDiagnostics.h>
 #include <ILogger.h>
 
 #ifdef ARDUINO
@@ -39,6 +40,9 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
 
     /* @Autowired */
     Private ILoggerPtr logger;
+
+    /* @Autowired */
+    Private IDeviceDiagnosticsPtr deviceDiagnostics;
 
     Private Static const ULong kPublishLogsIntervalMs = 120000;  // 2 minutes
     Private std::atomic<ULong> lastPublishLogsMillis_{0};
@@ -86,6 +90,11 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
 
     Public Virtual Bool StartApp() override {
         logger->Info(Tag::Untagged, StdString("[ArduinoSpringBootApp] Starting app..."));
+        if (deviceDiagnostics->HadPreviousCrash()) {
+            logger->Info(Tag::Untagged, StdString("[ArduinoSpringBootApp] Previous run: crashed (core dump/panic)."));
+        } else {
+            logger->Info(Tag::Untagged, StdString("[ArduinoSpringBootApp] Previous run: normal."));
+        }
         // First connect to network
         networkManager->EnsureNetworkConnectivity();
 
