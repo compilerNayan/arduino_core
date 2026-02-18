@@ -7,7 +7,7 @@
 #include "ISpringBootCppApp.h"
 #include <IArduinoRemoteStorage.h>
 #include <IThreadPool.h>
-#include <IDeviceTimeSync.h>
+#include <IDeviceTime.h>
 #include <ILogger.h>
 
 #ifdef ARDUINO
@@ -35,7 +35,7 @@ class ArduinoSpringBootApp : public IArduinoSpringBootApp {
     Private IThreadPoolPtr threadPool;
 
     /* @Autowired */
-    Private IDeviceTimeSyncPtr deviceTimeSync;
+    Private IDeviceTimePtr deviceTimeSync;
 
     /* @Autowired */
     Private ILoggerPtr logger;
